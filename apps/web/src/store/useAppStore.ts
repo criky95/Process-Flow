@@ -308,6 +308,9 @@ interface AppState {
   setSelectedNodeId: (id: string | null) => void;
   addNodeToDesigner: (type: NodeType) => void;
   updateNodeData: (id: string, patch: Partial<ActivityNodeData>) => void;
+
+  selectedTaskId: string | null;
+  setSelectedTaskId: (id: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -442,4 +445,6 @@ export const useAppStore = create<AppState>((set, get) => ({
           : state.processDrafts,
       };
     }),
+  selectedTaskId: 'TASK-2026-009',
+  setSelectedTaskId: (id: string | null) => set({ selectedTaskId: id }),
 }));

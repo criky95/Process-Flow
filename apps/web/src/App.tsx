@@ -4,6 +4,9 @@ import { AppShell } from './components/layout/AppShell';
 import { DashboardView } from './components/views/DashboardView';
 import { ProcessListView } from './components/views/ProcessListView';
 import { ProcessDesignerShell } from './components/views/ProcessDesignerShell';
+import { TaskInboxView } from './components/views/TaskInboxView';
+import { TaskDetailView } from './components/views/TaskDetailView';
+import { CaseDetailView } from './components/views/CaseDetailView';
 import { StateWrapper } from './components/shared/StateWrapper';
 
 export const App: React.FC = () => {
@@ -18,30 +21,14 @@ export const App: React.FC = () => {
       case 'designer':
         return <ProcessDesignerShell />;
       case 'tasks':
-        return (
-          <StateWrapper
-            mode="success"
-          >
-            <div className="p-6">
-              <h2 className="text-lg font-bold text-white mb-2">Bandeja de Tareas (Task Inbox)</h2>
-              <p className="text-xs text-slate-400">Tus tareas asignadas filtradas por prioridad y vencimiento.</p>
-            </div>
-          </StateWrapper>
-        );
+        return <TaskInboxView />;
+      case 'task_detail':
+        return <TaskDetailView />;
       case 'cases':
-        return (
-          <StateWrapper mode="success">
-            <div className="p-6">
-              <h2 className="text-lg font-bold text-white mb-2">Seguimiento de Instancias & Casos</h2>
-              <p className="text-xs text-slate-400">Consulta de ejecuciones en tiempo real con mapa en vivo y timeline.</p>
-            </div>
-          </StateWrapper>
-        );
+        return <CaseDetailView />;
       default:
         return (
-          <StateWrapper
-            mode="success"
-          >
+          <StateWrapper mode="success">
             <div className="p-6">
               <h2 className="text-lg font-bold text-white mb-2 capitalize">{activeTab}</h2>
               <p className="text-xs text-slate-400">Módulo empresarial integrado en ProcessFlow.</p>
