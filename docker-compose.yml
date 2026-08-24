@@ -87,7 +87,7 @@ services:
       REDIS_URL: redis://:processflow_redis_password_2026@processflow-redis:6379
       PORT: 3001
     ports:
-      - "3001:3001"
+      - "3002:3001"
     depends_on:
       postgres:
         condition: service_healthy
