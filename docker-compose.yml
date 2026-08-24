@@ -74,3 +74,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # 4. Aplicación Web Frontend (ProcessFlow UI)
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: processflow-web
+    restart: unless-stopped
+    networks:
+      - processflow-net
+    ports:
+      - "5173:5173"
