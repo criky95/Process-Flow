@@ -73,7 +73,28 @@ services:
       timeout: 5s
       retries: 5
 
-  # 4. Aplicación Web Frontend (ProcessFlow UI)
+  # 4. Backend API Core (NestJS + Process Engine FSM)
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: processflow-api
+    restart: unless-stopped
+    networks:
+      - processflow-net
+    environment:
+      DATABASE_URL: postgresql://processflow_user:processflow_secure_password_2026@processflow-db:5432/processflow_db
+      REDIS_URL: redis://:processflow_redis_password_2026@processflow-redis:6379
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # 5. Aplicación Web Frontend (ProcessFlow UI)
   web:
     build:
       context: .
