@@ -1,0 +1,76 @@
+version: '3.8'
+
+networks:
+  processflow-net:
+    name: processflow-net
+    driver: bridge
+
+volumes:
+  processflow_postgres_data:
+    name: processflow_postgres_data
+  processflow_redis_data:
+    name: processflow_redis_data
+  processflow_minio_data:
+    name: processflow_minio_data
+
+services:
+  # 1. Base de Datos Relacional Multi-Tenant
+  postgres:
+    image: postgres:16-alpine
+    container_name: processflow-db
+    restart: unless-stopped
+    networks:
+      - processflow-net
+    environment:
+      POSTGRES_DB: processflow_db
+      POSTGRES_USER: processflow_user
+      POSTGRES_PASSWORD: processflow_secure_password_2026
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - processflow_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U processflow_user -d processflow_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Motor de Colas & Alertas de SLA (Redis 7)
+  redis:
+    image: redis:7-alpine
+    container_name: processflow-redis
+    restart: unless-stopped
+    networks:
+      - processflow-net
+    command: redis-server --requirepass processflow_redis_password_2026
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - processflow_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "processflow_redis_password_2026", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 3. Almacenamiento de Expedientes & Documentos (MinIO S3 Compatible)
+  minio:
+    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    container_name: processflow-minio
+    restart: unless-stopped
+    networks:
+      - processflow-net
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: processflow_minio_admin
+      MINIO_ROOT_PASSWORD: processflow_minio_secure_password_2026
+    ports:
+      - "127.0.0.1:9002:9000"
+      - "127.0.0.1:9003:9001"
+    volumes:
+      - processflow_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
