@@ -1,0 +1,204 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ProcessStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum InstanceStatus {
+  RUNNING
+  COMPLETED
+  CANCELLED
+  SUSPENDED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  RETURNED
+  SKIPPED
+}
+
+enum SlaStatus {
+  NORMAL
+  AT_RISK
+  OVERDUE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Tenant {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users              User[]
+  processDefinitions ProcessDefinition[]
+  processInstances   ProcessInstance[]
+  auditLogs          AuditLog[]
+
+  @@map("tenants")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  users UserRole[]
+
+  @@map("roles")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String
+  email     String   @unique
+  name      String
+  password  String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roles         UserRole[]
+  initiated     ProcessInstance[] @relation("InitiatorUser")
+  assignedTasks TaskInstance[]   @relation("AssignedUser")
+
+  @@map("users")
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model ProcessDefinition {
+  id          String        @id @default(uuid())
+  tenantId    String
+  code        String
+  name        String
+  description String?
+  category    String
+  ownerGroup  String
+  status      ProcessStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions ProcessVersion[]
+
+  @@unique([tenantId, code])
+  @@map("process_definitions")
+}
+
+model ProcessVersion {
+  id                  String        @id @default(uuid())
+  processDefinitionId String
+  versionNumber       Int
+  graphSchema         Json
+  status              ProcessStatus @default(DRAFT)
+  publishedAt         DateTime?
+  createdAt           DateTime      @default(now())
+
+  definition ProcessDefinition @relation(fields: [processDefinitionId], references: [id], onDelete: Cascade)
+  instances  ProcessInstance[]
+
+  @@unique([processDefinitionId, versionNumber])
+  @@map("process_versions")
+}
+
+model ProcessInstance {
+  id               String         @id @default(uuid())
+  tenantId         String
+  processVersionId String
+  code             String         @unique
+  initiatorId      String
+  status           InstanceStatus @default(RUNNING)
+  variables        Json           @default("{}")
+  startedAt        DateTime       @default(now())
+  completedAt      DateTime?
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  processVersion ProcessVersion @relation(fields: [processVersionId], references: [id], onDelete: Restrict)
+  initiator      User           @relation("InitiatorUser", fields: [initiatorId], references: [id], onDelete: Restrict)
+  taskInstances  TaskInstance[]
+  documents      Document[]
+
+  @@map("process_instances")
+}
+
+model TaskInstance {
+  id                String       @id @default(uuid())
+  processInstanceId String
+  activityNodeId    String
+  activityName      String
+  assignedToId      String?
+  assignedRole      String?
+  priority          TaskPriority @default(MEDIUM)
+  status            TaskStatus   @default(PENDING)
+  slaStatus         SlaStatus    @default(NORMAL)
+  slaHours          Int          @default(24)
+  dueDate           DateTime
+  completedAt       DateTime?
+  createdAt         DateTime     @default(now())
+
+  processInstance ProcessInstance @relation(fields: [processInstanceId], references: [id], onDelete: Cascade)
+  assignedTo      User?           @relation("AssignedUser", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@map("task_instances")
+}
+
+model Document {
+  id                String   @id @default(uuid())
+  processInstanceId String
+  fileName          String
+  fileType          String
+  fileSize          Int
+  s3Url             String
+  uploadedBy        String
+  createdAt         DateTime @default(now())
+
+  processInstance ProcessInstance @relation(fields: [processInstanceId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String
+  eventId   String   @default(uuid())
+  eventType String
+  actorId   String
+  actorRole String?
+  payload   Json
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
