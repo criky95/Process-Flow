@@ -51,6 +51,39 @@ export interface TaskItem {
   status: 'pending' | 'in_progress' | 'completed' | 'returned';
 }
 
+export interface TimerConfig {
+  mode: 'duration' | 'fixed_date' | 'webhook_event';
+  durationValue?: number;
+  durationUnit?: 'minutes' | 'hours' | 'days';
+  fixedDate?: string;
+  eventName?: string;
+}
+
+export interface NotificationConfig {
+  channel: 'email' | 'whatsapp' | 'sms' | 'in_app';
+  recipientType: 'initiator' | 'assignee' | 'role' | 'dynamic_email';
+  recipientValue?: string;
+  subject?: string;
+  bodyTemplate?: string;
+}
+
+export interface DecisionCondition {
+  id: string;
+  variable: string;
+  operator: 'gt' | 'lt' | 'eq' | 'neq' | 'contains';
+  value: string;
+  outcomeLabel: string;
+}
+
+export interface SignatureConfig {
+  level: 'simple' | 'pki_certificate' | 'sms_otp' | 'biometric';
+  documentTitle?: string;
+}
+
+export interface SubprocessConfig {
+  targetProcessCode?: string;
+}
+
 export interface ActivityNodeData extends Record<string, unknown> {
   label: string;
   nodeType: NodeType;
@@ -61,6 +94,13 @@ export interface ActivityNodeData extends Record<string, unknown> {
   requiredDocuments?: string[];
   formSchemaId?: string;
   rulesCount?: number;
+
+  // Specific node type parameters
+  timerConfig?: TimerConfig;
+  notificationConfig?: NotificationConfig;
+  decisionConditions?: DecisionCondition[];
+  signatureConfig?: SignatureConfig;
+  subprocessConfig?: SubprocessConfig;
 }
 
 export type UIStateMode =

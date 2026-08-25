@@ -13,17 +13,21 @@ import {
   X,
   Check,
   Trash2,
+  GitFork,
+  FileSignature,
+  Boxes,
 } from 'lucide-react';
+import { DecisionCondition } from '../../types';
 
 export const PropertyPanel: React.FC = () => {
   const { designerNodes, selectedNodeId, updateNodeData, setSelectedNodeId, deleteNode } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'general' | 'assignment' | 'instructions' | 'forms' | 'documents' | 'sla' | 'rules' | 'notifications' | 'advanced'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'params' | 'assignment' | 'instructions' | 'forms' | 'documents' | 'sla' | 'rules' | 'notifications' | 'advanced'>('general');
 
   const selectedNode = designerNodes.find((n) => n.id === selectedNodeId);
 
   if (!selectedNode) {
     return (
-      <div className="w-80 bg-slate-900 border-l border-slate-800 p-6 flex flex-col items-center justify-center text-center text-slate-500">
+      <div className="w-80 bg-slate-900 border-l border-slate-800 p-6 flex flex-col items-center justify-center text-center text-slate-500 select-none">
         <SlidersHorizontal className="w-8 h-8 mb-2 opacity-50 text-indigo-400" />
         <p className="text-xs font-medium text-slate-400">Sin actividad seleccionada</p>
         <p className="text-[11px] text-slate-500 mt-1">Haz clic en un nodo del canvas para configurar sus propiedades.</p>
@@ -43,7 +47,7 @@ export const PropertyPanel: React.FC = () => {
           </div>
           <div className="truncate">
             <h3 className="text-xs font-semibold text-slate-100 truncate">{data.label}</h3>
-            <span className="text-[10px] text-slate-500 font-mono">ID: {selectedNode.id}</span>
+            <span className="text-[10px] text-slate-500 font-mono">Tipo: {data.nodeType} · ID: {selectedNode.id}</span>
           </div>
         </div>
         <button
@@ -54,18 +58,15 @@ export const PropertyPanel: React.FC = () => {
         </button>
       </div>
 
-      {/* Tabs Navigation (9 tabs) */}
+      {/* Tabs Navigation */}
       <div className="flex items-center border-b border-slate-800 bg-slate-950/40 overflow-x-auto text-[11px] font-medium no-scrollbar">
         {[
           { id: 'general', label: 'General' },
-          { id: 'assignment', label: 'Assignment' },
-          { id: 'instructions', label: 'Instructions' },
-          { id: 'forms', label: 'Forms' },
-          { id: 'documents', label: 'Docs' },
+          { id: 'params', label: 'Parámetros Nivel' },
+          { id: 'assignment', label: 'Asignación' },
+          { id: 'instructions', label: 'Instrucciones' },
           { id: 'sla', label: 'SLA' },
-          { id: 'rules', label: 'Rules' },
-          { id: 'notifications', label: 'Notif' },
-          { id: 'advanced', label: 'Advanced' },
+          { id: 'advanced', label: 'Avanzado' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -105,6 +106,199 @@ export const PropertyPanel: React.FC = () => {
                 className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
               />
             </div>
+          </div>
+        )}
+
+        {/* Specialized Parameters Per Node Type */}
+        {activeTab === 'params' && (
+          <div className="space-y-4">
+            {/* TIMER NODE CONFIG */}
+            {data.nodeType === 'timer' && (
+              <div className="space-y-3 bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+                <div className="flex items-center gap-1.5 text-amber-400 font-semibold text-xs border-b border-slate-800 pb-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Configuración de Timer / Espera</span>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-slate-400 block mb-1">Modo de Espera</label>
+                  <select
+                    value={data.timerConfig?.mode || 'duration'}
+                    onChange={(e) =>
+                      updateNodeData(selectedNode.id, {
+                        timerConfig: { ...(data.timerConfig || { mode: 'duration' }), mode: e.target.value as any },
+                      })
+                    }
+                    className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                  >
+                    <option value="duration">Duración Relativa (Horas / Días)</option>
+                    <option value="fixed_date">Fecha Límite Fija (ISO)</option>
+                    <option value="webhook_event">Espera a Evento / Webhook Externo</option>
+                  </select>
+                </div>
+
+                {data.timerConfig?.mode === 'duration' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-1">Cantidad</label>
+                      <input
+                        type="number"
+                        value={data.timerConfig?.durationValue || 24}
+                        onChange={(e) =>
+                          updateNodeData(selectedNode.id, {
+                            timerConfig: { ...(data.timerConfig || { mode: 'duration' }), durationValue: parseInt(e.target.value) || 1 },
+                          })
+                        }
+                        className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-1">Unidad</label>
+                      <select
+                        value={data.timerConfig?.durationUnit || 'hours'}
+                        onChange={(e) =>
+                          updateNodeData(selectedNode.id, {
+                            timerConfig: { ...(data.timerConfig || { mode: 'duration' }), durationUnit: e.target.value as any },
+                          })
+                        }
+                        className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200"
+                      >
+                        <option value="minutes">Minutos</option>
+                        <option value="hours">Horas</option>
+                        <option value="days">Días</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* NOTIFICATION NODE CONFIG */}
+            {data.nodeType === 'notification' && (
+              <div className="space-y-3 bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+                <div className="flex items-center gap-1.5 text-yellow-400 font-semibold text-xs border-b border-slate-800 pb-1.5">
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>Configuración de Notificación</span>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-slate-400 block mb-1">Canal de Envío</label>
+                  <select
+                    value={data.notificationConfig?.channel || 'email'}
+                    onChange={(e) =>
+                      updateNodeData(selectedNode.id, {
+                        notificationConfig: { ...(data.notificationConfig || { channel: 'email', recipientType: 'initiator' }), channel: e.target.value as any },
+                      })
+                    }
+                    className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200"
+                  >
+                    <option value="email">Correo Electrónico (Email)</option>
+                    <option value="whatsapp">WhatsApp Business API</option>
+                    <option value="sms">Mensaje SMS</option>
+                    <option value="in_app">Notificación In-App</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-slate-400 block mb-1">Destinatario</label>
+                  <select
+                    value={data.notificationConfig?.recipientType || 'initiator'}
+                    onChange={(e) =>
+                      updateNodeData(selectedNode.id, {
+                        notificationConfig: { ...(data.notificationConfig || { channel: 'email', recipientType: 'initiator' }), recipientType: e.target.value as any },
+                      })
+                    }
+                    className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200"
+                  >
+                    <option value="initiator">Iniciador del Caso</option>
+                    <option value="assignee">Asignado Actual</option>
+                    <option value="role">Rol de Organización</option>
+                    <option value="dynamic_email">Correo Dinámico (Variable)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-slate-400 block mb-1">Asunto de Notificación</label>
+                  <input
+                    type="text"
+                    value={data.notificationConfig?.subject || 'Actualización de Trámite ProcessFlow'}
+                    onChange={(e) =>
+                      updateNodeData(selectedNode.id, {
+                        notificationConfig: { ...(data.notificationConfig || { channel: 'email', recipientType: 'initiator' }), subject: e.target.value },
+                      })
+                    }
+                    className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-slate-400 block mb-1">Plantilla del Mensaje (Variables: {"{{caseId}}, {{initiator}}"})</label>
+                  <textarea
+                    rows={3}
+                    value={data.notificationConfig?.bodyTemplate || 'Estimado {{initiator}}, su caso {{caseId}} ha cambiado de estado.'}
+                    onChange={(e) =>
+                      updateNodeData(selectedNode.id, {
+                        notificationConfig: { ...(data.notificationConfig || { channel: 'email', recipientType: 'initiator' }), bodyTemplate: e.target.value },
+                      })
+                    }
+                    className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-slate-200 font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* DECISION NODE CONFIG */}
+            {data.nodeType === 'decision' && (
+              <div className="space-y-3 bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+                <div className="flex items-center gap-1.5 text-amber-400 font-semibold text-xs border-b border-slate-800 pb-1.5">
+                  <GitFork className="w-3.5 h-3.5" />
+                  <span>Reglas de Decisión Condicional</span>
+                </div>
+
+                <div className="p-2 bg-slate-900 rounded border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                  <div className="flex justify-between font-mono text-slate-200">
+                    <span>Regla #1:</span>
+                    <span className="text-emerald-400">monto &gt; 10000 USD</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500">Salida → Aprobación Gerente Finanzas (Sí)</div>
+                </div>
+              </div>
+            )}
+
+            {/* SIGNATURE NODE CONFIG */}
+            {data.nodeType === 'signature' && (
+              <div className="space-y-3 bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+                <div className="flex items-center gap-1.5 text-rose-400 font-semibold text-xs border-b border-slate-800 pb-1.5">
+                  <FileSignature className="w-3.5 h-3.5" />
+                  <span>Configuración de Firma Digital</span>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-medium text-slate-400 block mb-1">Nivel de Firma Requerido</label>
+                  <select
+                    value={data.signatureConfig?.level || 'simple'}
+                    onChange={(e) =>
+                      updateNodeData(selectedNode.id, {
+                        signatureConfig: { level: e.target.value as any },
+                      })
+                    }
+                    className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200"
+                  >
+                    <option value="simple">Firma Electrónica Simple (Aceptación en pantalla)</option>
+                    <option value="pki_certificate">Certificado Digital PKI (Firma Cualificada)</option>
+                    <option value="sms_otp">Token OTP por SMS</option>
+                    <option value="biometric">Firma Biométrica Manuscrita</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* OTHER NODE TYPES */}
+            {data.nodeType !== 'timer' && data.nodeType !== 'notification' && data.nodeType !== 'decision' && data.nodeType !== 'signature' && (
+              <div className="p-3 bg-slate-950/60 rounded border border-slate-800 text-[11px] text-slate-400">
+                Parámetros específicos cargados según la definición inmutable del nodo <strong className="text-white">{data.nodeType}</strong>.
+              </div>
+            )}
           </div>
         )}
 
@@ -152,21 +346,6 @@ export const PropertyPanel: React.FC = () => {
                 className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
               />
             </div>
-
-            <div className="p-2.5 rounded bg-slate-950 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-              <div className="flex items-center justify-between text-slate-300 font-medium">
-                <span>Acción de Escalamiento</span>
-                <span className="text-amber-400 font-mono">BullMQ Worker</span>
-              </div>
-              <p className="text-[10px]">Al vencer el SLA de {data.slaHours || 24}h, se reasignará automáticamente al Supervisor del Área.</p>
-            </div>
-          </div>
-        )}
-
-        {activeTab !== 'general' && activeTab !== 'assignment' && activeTab !== 'sla' && (
-          <div className="p-4 rounded border border-dashed border-slate-800 bg-slate-950/40 text-center text-slate-500">
-            <p className="text-xs">Configuración avanzada de <span className="font-semibold text-slate-300 capitalize">{activeTab}</span></p>
-            <p className="text-[11px] mt-1">Parámetros integrados al schema de la versión inmutable.</p>
           </div>
         )}
       </div>

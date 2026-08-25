@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -18,6 +18,7 @@ import '@xyflow/react/dist/style.css';
 import { useAppStore } from '../../store/useAppStore';
 import { ProcessNode } from '../designer/ProcessNode';
 import { PropertyPanel } from '../designer/PropertyPanel';
+import { JsonExchangeModal } from '../designer/JsonExchangeModal';
 import { ActivityNodeData, NodeType } from '../../types';
 import { StateWrapper } from '../shared/StateWrapper';
 import {
@@ -38,6 +39,11 @@ import {
   UploadCloud,
   Layers,
   ArrowLeft,
+  Undo2,
+  Redo2,
+  Copy,
+  Clipboard,
+  Code2,
 } from 'lucide-react';
 
 export const ProcessDesignerShell: React.FC = () => {
@@ -51,8 +57,16 @@ export const ProcessDesignerShell: React.FC = () => {
     setSelectedNodeId,
     addNodeToDesigner,
     deleteNode,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    copySelectedNodes,
+    pasteNodes,
     setActiveTab,
   } = useAppStore();
+
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
 
   const currentDraft = processDrafts[activeProcessId] || {
     name: 'Proceso Desconocido',
@@ -62,6 +76,35 @@ export const ProcessDesignerShell: React.FC = () => {
   };
 
   const nodeTypes = useMemo(() => ({ processNode: ProcessNode as any }), []);
+
+  // Keyboard Shortcuts Listener for Ctrl+Z, Ctrl+Y, Ctrl+C, Ctrl+V
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Do not trigger shortcuts when typing inside text inputs or textareas
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const ctrlKey = isMac ? e.metaKey : e.ctrlKey;
+
+      if (ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      } else if ((ctrlKey && e.key.toLowerCase() === 'y') || (ctrlKey && e.shiftKey && e.key.toLowerCase() === 'z')) {
+        e.preventDefault();
+        redo();
+      } else if (ctrlKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        copySelectedNodes();
+      } else if (ctrlKey && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        pasteNodes();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, copySelectedNodes, pasteNodes]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<Node<ActivityNodeData>>[]) => {
@@ -135,6 +178,64 @@ export const ProcessDesignerShell: React.FC = () => {
                 {currentDraft.version}
               </span>
             </div>
+          </div>
+
+          {/* Center Actions: Undo / Redo & Copy / Paste & JSON Exchange */}
+          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              className={`p-1.5 rounded text-xs flex items-center gap-1 transition-all ${
+                canUndo
+                  ? 'hover:bg-slate-800 text-slate-200 hover:text-white'
+                  : 'text-slate-600 cursor-not-allowed'
+              }`}
+              title="Deshacer (Ctrl + Z)"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              className={`p-1.5 rounded text-xs flex items-center gap-1 transition-all ${
+                canRedo
+                  ? 'hover:bg-slate-800 text-slate-200 hover:text-white'
+                  : 'text-slate-600 cursor-not-allowed'
+              }`}
+              title="Rehacer (Ctrl + Y)"
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="h-3.5 w-[1px] bg-slate-800 my-auto"></div>
+
+            <button
+              onClick={copySelectedNodes}
+              className="p-1.5 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+              title="Copiar Nodo Seleccionado (Ctrl + C)"
+            >
+              <Copy className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={pasteNodes}
+              className="p-1.5 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+              title="Pegar Nodo (Ctrl + V)"
+            >
+              <Clipboard className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="h-3.5 w-[1px] bg-slate-800 my-auto"></div>
+
+            <button
+              onClick={() => setIsJsonModalOpen(true)}
+              className="px-2 py-1 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-800/40 text-indigo-300 rounded text-[11px] font-medium transition-colors flex items-center gap-1"
+              title="Ver / Copiar / Importar JSON del diagrama"
+            >
+              <Code2 className="w-3.5 h-3.5" />
+              <span>Ver JSON</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -211,6 +312,12 @@ export const ProcessDesignerShell: React.FC = () => {
           {/* Right Column: Property Panel */}
           <PropertyPanel />
         </div>
+
+        {/* JSON Import/Export Exchange Modal */}
+        <JsonExchangeModal
+          isOpen={isJsonModalOpen}
+          onClose={() => setIsJsonModalOpen(false)}
+        />
       </div>
     </StateWrapper>
   );
