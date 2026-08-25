@@ -305,6 +305,7 @@ export interface AppState {
   // Undo / Redo History Stacks
   historyPast: GraphSnapshot[];
   historyFuture: GraphSnapshot[];
+  recordSnapshot: () => void;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -330,7 +331,7 @@ export const useAppStore = create<AppState>((set, get) => {
       edges: JSON.parse(JSON.stringify(state.designerEdges)),
     };
     return {
-      historyPast: [...state.historyPast.slice(-19), currentSnapshot], // max 20 states
+      historyPast: [...state.historyPast.slice(-19), currentSnapshot],
       historyFuture: [],
     };
   };
@@ -383,6 +384,8 @@ export const useAppStore = create<AppState>((set, get) => {
           selectedNodeId: targetDraft.nodes[0]?.id || null,
           historyPast: [],
           historyFuture: [],
+          canUndo: false,
+          canRedo: false,
         };
       }),
 
@@ -395,6 +398,16 @@ export const useAppStore = create<AppState>((set, get) => {
     canUndo: false,
     canRedo: false,
 
+    recordSnapshot: () =>
+      set((state) => {
+        const snapshotUpdates = recordHistorySnapshot(state);
+        return {
+          ...snapshotUpdates,
+          canUndo: true,
+          canRedo: false,
+        };
+      }),
+
     undo: () =>
       set((state) => {
         if (state.historyPast.length === 0) return state;
@@ -406,17 +419,20 @@ export const useAppStore = create<AppState>((set, get) => {
           edges: JSON.parse(JSON.stringify(state.designerEdges)),
         };
 
+        const restoredNodes = JSON.parse(JSON.stringify(previous.nodes));
+        const restoredEdges = JSON.parse(JSON.stringify(previous.edges));
+
         const currentDraft = state.processDrafts[state.activeProcessId];
         const updatedDrafts = currentDraft
           ? {
               ...state.processDrafts,
-              [state.activeProcessId]: { ...currentDraft, nodes: previous.nodes, edges: previous.edges },
+              [state.activeProcessId]: { ...currentDraft, nodes: restoredNodes, edges: restoredEdges },
             }
           : state.processDrafts;
 
         return {
-          designerNodes: previous.nodes,
-          designerEdges: previous.edges,
+          designerNodes: restoredNodes,
+          designerEdges: restoredEdges,
           historyPast: newPast,
           historyFuture: [currentSnapshot, ...state.historyFuture],
           canUndo: newPast.length > 0,
@@ -436,17 +452,20 @@ export const useAppStore = create<AppState>((set, get) => {
           edges: JSON.parse(JSON.stringify(state.designerEdges)),
         };
 
+        const restoredNodes = JSON.parse(JSON.stringify(next.nodes));
+        const restoredEdges = JSON.parse(JSON.stringify(next.edges));
+
         const currentDraft = state.processDrafts[state.activeProcessId];
         const updatedDrafts = currentDraft
           ? {
               ...state.processDrafts,
-              [state.activeProcessId]: { ...currentDraft, nodes: next.nodes, edges: next.edges },
+              [state.activeProcessId]: { ...currentDraft, nodes: restoredNodes, edges: restoredEdges },
             }
           : state.processDrafts;
 
         return {
-          designerNodes: next.nodes,
-          designerEdges: next.edges,
+          designerNodes: restoredNodes,
+          designerEdges: restoredEdges,
           historyPast: [...state.historyPast, currentSnapshot],
           historyFuture: newFuture,
           canUndo: true,
@@ -661,6 +680,8 @@ export const useAppStore = create<AppState>((set, get) => {
 
     deleteNode: (id: string) => {
       const state = get();
+      if (!state.designerNodes.some((n) => n.id === id)) return;
+
       const historyUpdates = recordHistorySnapshot(state);
       const updatedNodes = state.designerNodes.filter((n) => n.id !== id);
       const updatedEdges = state.designerEdges.filter((e) => e.source !== id && e.target !== id);

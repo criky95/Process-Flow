@@ -57,6 +57,7 @@ export const ProcessDesignerShell: React.FC = () => {
     setSelectedNodeId,
     addNodeToDesigner,
     deleteNode,
+    recordSnapshot,
     undo,
     redo,
     canUndo,
@@ -120,15 +121,21 @@ export const ProcessDesignerShell: React.FC = () => {
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
+      const hasRemoval = changes.some((c) => c.type === 'remove');
+      if (hasRemoval) {
+        recordSnapshot();
+      }
       setDesignerEdges((eds) => applyEdgeChanges(changes, eds));
     },
-    [setDesignerEdges]
+    [setDesignerEdges, recordSnapshot]
   );
 
   const onConnect = useCallback(
-    (params: Connection) =>
-      setDesignerEdges((eds) => addEdge({ ...params, animated: true }, eds)),
-    [setDesignerEdges]
+    (params: Connection) => {
+      recordSnapshot();
+      setDesignerEdges((eds) => addEdge({ ...params, animated: true }, eds));
+    },
+    [setDesignerEdges, recordSnapshot]
   );
 
   const paletteItems: { type: NodeType; label: string; icon: React.ElementType; color: string }[] = [
