@@ -1,6 +1,7 @@
 import React from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { ActivityNodeData, NodeType } from '../../types';
+import { useAppStore } from '../../store/useAppStore';
 import {
   Play,
   UserCheck,
@@ -14,11 +15,19 @@ import {
   FileSignature,
   Boxes,
   Flag,
+  Trash2,
 } from 'lucide-react';
 
 export type ProcessNodeType = Node<ActivityNodeData, 'processNode'>;
 
-export const ProcessNode: React.FC<NodeProps<ProcessNodeType>> = ({ data, selected }) => {
+export const ProcessNode: React.FC<NodeProps<ProcessNodeType>> = ({ id, data, selected }) => {
+  const { deleteNode } = useAppStore();
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteNode(id);
+  };
+
   const getNodeIcon = (type: NodeType) => {
     switch (type) {
       case 'start':
@@ -66,19 +75,29 @@ export const ProcessNode: React.FC<NodeProps<ProcessNodeType>> = ({ data, select
 
   return (
     <div
-      className={`min-w-[180px] max-w-[220px] rounded-lg border shadow-xl p-3 select-none backdrop-blur-md transition-all ${getBorderColor(
+      className={`min-w-[180px] max-w-[220px] rounded-lg border shadow-xl p-3 select-none backdrop-blur-md transition-all group/node relative ${getBorderColor(
         data.nodeType
       )}`}
     >
       <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-indigo-500 !border-2 !border-slate-900" />
 
-      <div className="flex items-center gap-2 mb-1">
-        <div className="p-1 rounded bg-slate-800/80 border border-slate-700/50">
-          {getNodeIcon(data.nodeType)}
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1 rounded bg-slate-800/80 border border-slate-700/50 shrink-0">
+            {getNodeIcon(data.nodeType)}
+          </div>
+          <h4 className="text-xs font-semibold text-slate-100 truncate leading-snug">
+            {data.label}
+          </h4>
         </div>
-        <h4 className="text-xs font-semibold text-slate-100 truncate leading-snug">
-          {data.label}
-        </h4>
+
+        <button
+          onClick={handleDelete}
+          className="opacity-0 group-hover/node:opacity-100 p-1 hover:bg-rose-950 hover:text-rose-400 text-slate-400 rounded transition-all shrink-0"
+          title="Eliminar este nodo"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {data.assignedRole && (

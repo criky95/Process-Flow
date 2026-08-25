@@ -50,6 +50,7 @@ export const ProcessDesignerShell: React.FC = () => {
     setDesignerEdges,
     setSelectedNodeId,
     addNodeToDesigner,
+    deleteNode,
     setActiveTab,
   } = useAppStore();
 
@@ -64,9 +65,14 @@ export const ProcessDesignerShell: React.FC = () => {
 
   const onNodesChange = useCallback(
     (changes: NodeChange<Node<ActivityNodeData>>[]) => {
+      changes.forEach((change) => {
+        if (change.type === 'remove') {
+          deleteNode(change.id);
+        }
+      });
       setDesignerNodes((nds) => applyNodeChanges(changes, nds));
     },
-    [setDesignerNodes]
+    [setDesignerNodes, deleteNode]
   );
 
   const onEdgesChange = useCallback(
@@ -188,6 +194,7 @@ export const ProcessDesignerShell: React.FC = () => {
               onNodeClick={(_, node) => setSelectedNodeId(node.id)}
               onPaneClick={() => setSelectedNodeId(null)}
               nodeTypes={nodeTypes}
+              deleteKeyCode={['Delete', 'Backspace']}
               fitView
               fitViewOptions={{ padding: 0.2 }}
             >

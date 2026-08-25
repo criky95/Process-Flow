@@ -12,10 +12,11 @@ import {
   Shield,
   X,
   Check,
+  Trash2,
 } from 'lucide-react';
 
 export const PropertyPanel: React.FC = () => {
-  const { designerNodes, selectedNodeId, updateNodeData, setSelectedNodeId } = useAppStore();
+  const { designerNodes, selectedNodeId, updateNodeData, setSelectedNodeId, deleteNode } = useAppStore();
   const [activeTab, setActiveTab] = useState<'general' | 'assignment' | 'instructions' | 'forms' | 'documents' | 'sla' | 'rules' | 'notifications' | 'advanced'>('general');
 
   const selectedNode = designerNodes.find((n) => n.id === selectedNodeId);
@@ -168,6 +169,17 @@ export const PropertyPanel: React.FC = () => {
             <p className="text-[11px] mt-1">Parámetros integrados al schema de la versión inmutable.</p>
           </div>
         )}
+      </div>
+
+      {/* Delete Node Action Button */}
+      <div className="p-3 border-t border-slate-800 bg-slate-950">
+        <button
+          onClick={() => deleteNode(selectedNode.id)}
+          className="w-full px-3 py-2 bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 rounded text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>Eliminar Actividad del Grafo</span>
+        </button>
       </div>
 
       {/* Footer Save Node Status */}

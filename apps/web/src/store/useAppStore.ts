@@ -308,6 +308,7 @@ interface AppState {
   setSelectedNodeId: (id: string | null) => void;
   addNodeToDesigner: (type: NodeType) => void;
   updateNodeData: (id: string, patch: Partial<ActivityNodeData>) => void;
+  deleteNode: (id: string) => void;
 
   selectedTaskId: string | null;
   setSelectedTaskId: (id: string | null) => void;
@@ -445,6 +446,28 @@ export const useAppStore = create<AppState>((set, get) => ({
           : state.processDrafts,
       };
     }),
+  deleteNode: (id: string) => {
+    const state = get();
+    const updatedNodes = state.designerNodes.filter((n) => n.id !== id);
+    const updatedEdges = state.designerEdges.filter((e) => e.source !== id && e.target !== id);
+    const currentDraft = state.processDrafts[state.activeProcessId];
+
+    set({
+      designerNodes: updatedNodes,
+      designerEdges: updatedEdges,
+      selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId,
+      processDrafts: currentDraft
+        ? {
+            ...state.processDrafts,
+            [state.activeProcessId]: {
+              ...currentDraft,
+              nodes: updatedNodes,
+              edges: updatedEdges,
+            },
+          }
+        : state.processDrafts,
+    });
+  },
   selectedTaskId: 'TASK-2026-009',
   setSelectedTaskId: (id: string | null) => set({ selectedTaskId: id }),
 }));
