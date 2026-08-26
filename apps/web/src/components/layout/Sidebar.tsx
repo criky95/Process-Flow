@@ -37,57 +37,60 @@ export const Sidebar: React.FC = () => {
 
   const getNavItems = (role: ProcessRole): NavItem[] => {
     switch (role) {
-      case 'participant':
+      case 'administrator':
         return [
           { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
-          { id: 'tasks', label: 'Mis tareas', icon: CheckSquare, badge: 14 },
-          { id: 'processes', label: 'Procesos', icon: Workflow },
-          { id: 'cases', label: 'Casos', icon: FolderGit2 },
-          { id: 'documents', label: 'Documentos', icon: FileText },
-          { id: 'notifications', label: 'Notificaciones', icon: Bell, badge: 3 },
-        ];
-      case 'supervisor':
-        return [
-          { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
-          { id: 'team', label: 'Equipo', icon: Users },
-          { id: 'tasks', label: 'Tareas del Área', icon: CheckSquare, badge: 28 },
-          { id: 'processes', label: 'Procesos', icon: Workflow },
-          { id: 'cases', label: 'Casos', icon: FolderGit2 },
-          { id: 'sla', label: 'SLA & Alertas', icon: Clock, badge: 2 },
-          { id: 'analytics', label: 'Analítica', icon: BarChart3 },
+          { id: 'users', label: 'Gestión de Usuarios', icon: Users, badge: 6 },
+          { id: 'roles', label: 'Roles & Permisos (RBAC)', icon: ShieldCheck },
+          { id: 'processes', label: 'Procesos & Flujos', icon: Workflow },
+          { id: 'designer', label: 'Diseñador Visual', icon: Layers },
+          { id: 'tasks', label: 'Todas las Tareas', icon: CheckSquare, badge: 28 },
+          { id: 'cases', label: 'Casos / Expedientes', icon: FolderGit2 },
+          { id: 'analytics', label: 'Analítica & Rendimiento', icon: BarChart3 },
+          { id: 'audit', label: 'Auditoría (Append-only)', icon: History },
+          { id: 'settings', label: 'Configuración Global', icon: Settings },
         ];
       case 'architect':
         return [
-          { id: 'processes', label: 'Procesos', icon: Workflow },
+          { id: 'processes', label: 'Catálogo de Procesos', icon: Workflow },
           { id: 'designer', label: 'Diseñador Visual', icon: Layers },
-          { id: 'versions', label: 'Versiones', icon: History },
+          { id: 'versions', label: 'Control de Versiones', icon: History },
           { id: 'components', label: 'Componentes', icon: SlidersHorizontal },
           { id: 'forms', label: 'Formularios', icon: FileCode },
-          { id: 'simulation', label: 'Simulación', icon: PlayCircle },
-          { id: 'publications', label: 'Publicaciones', icon: UploadCloud },
+          { id: 'simulation', label: 'Simulación de Flujos', icon: PlayCircle },
+          { id: 'publications', label: 'Publicaciones Inmutables', icon: UploadCloud },
+        ];
+      case 'supervisor':
+        return [
+          { id: 'dashboard', label: 'Dashboard de Área', icon: LayoutDashboard },
+          { id: 'team', label: 'Supervisión de Equipo', icon: Users },
+          { id: 'tasks', label: 'Tareas del Área', icon: CheckSquare, badge: 28 },
+          { id: 'processes', label: 'Procesos', icon: Workflow },
+          { id: 'cases', label: 'Casos en Curso', icon: FolderGit2 },
+          { id: 'sla', label: 'SLA & Alertas de Vencimiento', icon: Clock, badge: 2 },
+          { id: 'analytics', label: 'Analítica de Cuellos de Botella', icon: BarChart3 },
+        ];
+      case 'participant':
+        return [
+          { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
+          { id: 'tasks', label: 'Mis Tareas Asignadas', icon: CheckSquare, badge: 14 },
+          { id: 'processes', label: 'Iniciar Nuevo Trámite', icon: Workflow },
+          { id: 'cases', label: 'Mis Casos Radicados', icon: FolderGit2 },
+          { id: 'documents', label: 'Documentos & Adjuntos', icon: FileText },
+          { id: 'notifications', label: 'Notificaciones', icon: Bell, badge: 3 },
         ];
       case 'process_owner':
         return [
-          { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
+          { id: 'dashboard', label: 'Dashboard Ejecutivo', icon: LayoutDashboard },
           { id: 'processes', label: 'Mis Procesos', icon: Workflow },
-          { id: 'analytics', label: 'Indicadores KPI', icon: BarChart3 },
-          { id: 'cases', label: 'Casos Críticos', icon: FolderGit2 },
-        ];
-      case 'administrator':
-        return [
-          { id: 'organization', label: 'Organización', icon: Building2 },
-          { id: 'users', label: 'Usuarios & Grupos', icon: Users },
-          { id: 'roles', label: 'Roles & Permisos', icon: ShieldCheck },
-          { id: 'calendars', label: 'Calendarios SLAs', icon: Calendar },
-          { id: 'integrations', label: 'Integraciones', icon: Zap },
-          { id: 'audit', label: 'Auditoría (Append-only)', icon: History },
-          { id: 'settings', label: 'Configuración Global', icon: Settings },
+          { id: 'analytics', label: 'Indicadores KPI & Ciclos', icon: BarChart3 },
+          { id: 'cases', label: 'Casos Críticos & Excepciones', icon: FolderGit2 },
         ];
       case 'viewer':
       default:
         return [
-          { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
-          { id: 'processes', label: 'Procesos (Lectura)', icon: Eye },
+          { id: 'dashboard', label: 'Inicio (Consulta)', icon: LayoutDashboard },
+          { id: 'processes', label: 'Procesos (Solo Lectura)', icon: Eye },
           { id: 'cases', label: 'Consulta de Casos', icon: FolderGit2 },
           { id: 'documents', label: 'Documentos', icon: FileText },
         ];

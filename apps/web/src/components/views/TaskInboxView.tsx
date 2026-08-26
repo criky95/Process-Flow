@@ -17,81 +17,24 @@ import {
 } from 'lucide-react';
 
 export const TaskInboxView: React.FC = () => {
-  const { setActiveTab, setSelectedTaskId } = useAppStore();
+  const { tasks, setActiveTab, setSelectedTaskId } = useAppStore();
   const [activeFilter, setActiveFilter] = useState<'mine' | 'team' | 'pending' | 'overdue' | 'today'>('mine');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const inboxTasks: TaskItem[] = [
-    {
-      id: 'TASK-2026-009',
-      caseId: 'PROC-2026-00432',
-      processName: 'Compra de Bienes & Suministros v3',
-      activityName: 'Revisión Técnica & Presupuesto',
-      requester: 'María Torres (Depto. Compras)',
-      priority: 'urgent',
-      assignedTo: 'Carlos Mendoza',
-      assignedRole: 'Analista Técnico',
-      createdAt: '2026-08-24 09:30',
-      dueDate: '2026-08-25 18:00',
-      slaStatus: 'at_risk',
-      slaRemainingText: '3 h restantes',
-      status: 'pending',
-    },
-    {
-      id: 'TASK-2026-014',
-      caseId: 'PROC-2026-00418',
-      processName: 'Contratación de Personal v1',
-      activityName: 'Aprobación Oferta Salarial',
-      requester: 'Jorge Morales (RRHH)',
-      priority: 'high',
-      assignedTo: 'Carlos Mendoza',
-      assignedRole: 'Gerente de Área',
-      createdAt: '2026-08-23 14:15',
-      dueDate: '2026-08-24 12:00',
-      slaStatus: 'overdue',
-      slaRemainingText: 'Vencida hace 2 h',
-      status: 'pending',
-    },
-    {
-      id: 'TASK-2026-021',
-      caseId: 'PROC-2026-00445',
-      processName: 'Solicitud de Licencia Municipal v4',
-      activityName: 'Verificación Documental & Predio',
-      requester: 'Ana Beltrán (Trámites)',
-      priority: 'medium',
-      assignedTo: 'Carlos Mendoza',
-      assignedRole: 'Inspector Municipal',
-      createdAt: '2026-08-24 11:00',
-      dueDate: '2026-08-26 11:00',
-      slaStatus: 'normal',
-      slaRemainingText: '48 h restantes',
-      status: 'pending',
-    },
-    {
-      id: 'TASK-2026-030',
-      caseId: 'PROC-2026-00399',
-      processName: 'Mantenimiento Preventivo v2',
-      activityName: 'Diagnóstico Técnico de Maquinaria',
-      requester: 'Jefatura de Operaciones',
-      priority: 'low',
-      assignedTo: 'Carlos Mendoza',
-      assignedRole: 'Técnico de Planta',
-      createdAt: '2026-08-22 08:00',
-      dueDate: '2026-08-27 17:00',
-      slaStatus: 'normal',
-      slaRemainingText: '72 h restantes',
-      status: 'pending',
-    },
-  ];
+  const overdueCount = tasks.filter((t) => t.slaStatus === 'overdue').length;
+  const todayCount = tasks.filter((t) => t.slaStatus === 'at_risk').length;
+  const pendingCount = tasks.filter((t) => t.status === 'pending').length;
 
-  const filteredTasks = inboxTasks.filter((task) => {
+  const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
       task.activityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.caseId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.processName.toLowerCase().includes(searchTerm.toLowerCase());
+      task.processName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.assignedTo && task.assignedTo.toLowerCase().includes(searchTerm.toLowerCase()));
 
     if (activeFilter === 'overdue') return matchesSearch && task.slaStatus === 'overdue';
     if (activeFilter === 'today') return matchesSearch && task.slaStatus === 'at_risk';
+    if (activeFilter === 'pending') return matchesSearch && task.status === 'pending';
     return matchesSearch;
   });
 
@@ -102,7 +45,7 @@ export const TaskInboxView: React.FC = () => {
 
   return (
     <StateWrapper mode="success">
-      <div className="h-full overflow-y-auto p-6 space-y-6">
+      <div className="h-full overflow-y-auto p-6 space-y-6 bg-slate-950 text-slate-100 pb-20">
         {/* Header Title */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -116,25 +59,27 @@ export const TaskInboxView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 font-mono">Total activas: <strong>{filteredTasks.length}</strong></span>
+            <span className="text-xs text-slate-400 font-mono">
+              Total activas: <strong className="text-indigo-400">{filteredTasks.length}</strong> / {tasks.length}
+            </span>
           </div>
         </div>
 
         {/* Filter Tabs & Search Bar */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Tabs */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80 w-full sm:w-auto">
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80 w-full sm:w-auto overflow-x-auto">
             {[
-              { id: 'mine', label: 'Mis Tareas (14)' },
-              { id: 'team', label: 'Equipo' },
-              { id: 'pending', label: 'Pendientes' },
-              { id: 'today', label: 'Vencen Hoy (3)' },
-              { id: 'overdue', label: 'Vencidas (2)' },
+              { id: 'mine', label: `Mis Tareas (${tasks.length})` },
+              { id: 'team', label: `Equipo (${tasks.length})` },
+              { id: 'pending', label: `Pendientes (${pendingCount})` },
+              { id: 'today', label: `Vencen Hoy (${todayCount})` },
+              { id: 'overdue', label: `Vencidas (${overdueCount})` },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveFilter(tab.id as typeof activeFilter)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
                   activeFilter === tab.id
                     ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -167,6 +112,7 @@ export const TaskInboxView: React.FC = () => {
                   <th className="py-3 px-4 font-semibold">Caso / Proceso</th>
                   <th className="py-3 px-4 font-semibold">Actividad Asignada</th>
                   <th className="py-3 px-4 font-semibold">Solicitante</th>
+                  <th className="py-3 px-4 font-semibold">Responsable</th>
                   <th className="py-3 px-4 font-semibold">Prioridad</th>
                   <th className="py-3 px-4 font-semibold">Vencimiento SLA</th>
                   <th className="py-3 px-4 font-semibold text-right">Acción</th>
@@ -195,6 +141,10 @@ export const TaskInboxView: React.FC = () => {
                       {task.requester}
                     </td>
 
+                    <td className="py-3.5 px-4 text-slate-300">
+                      <span className="font-medium text-slate-200">{task.assignedTo || 'Sin asignar'}</span>
+                    </td>
+
                     <td className="py-3.5 px-4">
                       <span
                         className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
@@ -219,7 +169,7 @@ export const TaskInboxView: React.FC = () => {
                           e.stopPropagation();
                           handleOpenTask(task.id);
                         }}
-                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-sm transition-all inline-flex items-center gap-1"
+                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-sm transition-all inline-flex items-center gap-1 cursor-pointer"
                       >
                         <span>Ejecutar</span>
                         <ArrowRight className="w-3.5 h-3.5" />

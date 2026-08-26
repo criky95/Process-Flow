@@ -1,11 +1,13 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { ProcessRole } from '../../types';
 import { UserAvatar } from '../shared/UserAvatar';
-import { Search, ChevronRight, Bell, Shield, Sliders } from 'lucide-react';
+import { Search, ChevronRight, Bell, Shield, LogOut } from 'lucide-react';
 
 export const Topbar: React.FC = () => {
   const { currentRole, setRole, activeTab, setCommandPaletteOpen } = useAppStore();
+  const { user, logout } = useAuthStore();
 
   const roles: { value: ProcessRole; label: string }[] = [
     { value: 'architect', label: 'Process Architect (Diseñador)' },
@@ -96,9 +98,19 @@ export const Topbar: React.FC = () => {
 
         <div className="h-4 w-[1px] bg-slate-800"></div>
 
-        {/* Active User Avatar */}
-        <UserAvatar name="Carlos Mendoza" role={currentRole} size="sm" />
+        {/* Active User Avatar & Logout */}
+        <div className="flex items-center gap-2">
+          <UserAvatar name={user?.name || 'Carlos Mendoza'} role={currentRole} size="sm" />
+          <button
+            onClick={logout}
+            title="Cerrar sesión"
+            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </header>
   );
 };
+

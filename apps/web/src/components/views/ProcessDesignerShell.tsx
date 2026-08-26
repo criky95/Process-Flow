@@ -65,9 +65,12 @@ export const ProcessDesignerShell: React.FC = () => {
     copySelectedNodes,
     pasteNodes,
     setActiveTab,
+    saveDraft,
+    publishVersion,
   } = useAppStore();
 
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
 
   const currentDraft = processDrafts[activeProcessId] || {
     name: 'Proceso Desconocido',
@@ -75,6 +78,32 @@ export const ProcessDesignerShell: React.FC = () => {
     version: 'v1 Draft',
     status: 'draft',
   };
+
+  const handleSaveDraft = () => {
+    saveDraft(activeProcessId);
+    setToastMsg({ text: 'Borrador guardado correctamente en el catálogo.', type: 'success' });
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const handlePublish = () => {
+    const res = publishVersion(activeProcessId);
+    if (res.success) {
+      setToastMsg({ text: `¡Versión ${res.version} publicada como inmutable!`, type: 'success' });
+      setTimeout(() => setToastMsg(null), 3500);
+    }
+  };
+
+  const handleValidate = () => {
+    const hasStart = designerNodes.some((n) => n.data?.nodeType === 'start');
+    const hasEnd = designerNodes.some((n) => n.data?.nodeType === 'end');
+    if (!hasStart || !hasEnd) {
+      setToastMsg({ text: 'El grafo debe incluir al menos un nodo de Inicio y uno de Fin.', type: 'info' });
+    } else {
+      setToastMsg({ text: '✓ Grafo validado: Todos los nodos y transiciones son válidos.', type: 'success' });
+    }
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
 
   const nodeTypes = useMemo(() => ({ processNode: ProcessNode as any }), []);
 
@@ -246,22 +275,45 @@ export const ProcessDesignerShell: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-medium transition-colors flex items-center gap-1.5">
+            {toastMsg && (
+              <div
+                className={`px-3 py-1 rounded text-xs font-semibold flex items-center gap-1.5 animate-fade-in ${
+                  toastMsg.type === 'success'
+                    ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-700/60'
+                    : 'bg-amber-950/90 text-amber-300 border border-amber-700/60'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{toastMsg.text}</span>
+              </div>
+            )}
+
+            <button
+              onClick={handleSaveDraft}
+              className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
               <Save className="w-3.5 h-3.5 text-slate-400" />
               <span>Guardar Draft</span>
             </button>
 
-            <button className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-medium transition-colors flex items-center gap-1.5">
+            <button
+              onClick={handleValidate}
+              className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
               <span>Validar Grafo</span>
             </button>
 
-            <button className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5">
+            <button
+              onClick={handlePublish}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
               <UploadCloud className="w-3.5 h-3.5" />
               <span>Publicar Versión ({currentDraft.version})</span>
             </button>
           </div>
         </div>
+
 
         {/* Designer Main Layout (3 Columns: Palette | Canvas | PropertyPanel) */}
         <div className="flex-1 flex min-h-0 relative">

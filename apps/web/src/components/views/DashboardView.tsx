@@ -17,55 +17,20 @@ import {
 } from 'lucide-react';
 
 export const DashboardView: React.FC = () => {
-  const { currentRole, setActiveTab, setActiveProcessId } = useAppStore();
+  const { currentRole, tasks, setActiveTab, setSelectedTaskId } = useAppStore();
 
-  const priorityTasks: TaskItem[] = [
-    {
-      id: 'TASK-2026-009',
-      caseId: 'PROC-2026-00432',
-      processName: 'Compra de bienes v3',
-      activityName: 'Revisión Técnica & Presupuesto',
-      requester: 'María Torres (Depto. Compras)',
-      priority: 'urgent',
-      assignedTo: 'Carlos Mendoza',
-      assignedRole: 'Analista Técnico',
-      createdAt: '2026-08-24 09:30',
-      dueDate: '2026-08-24 18:00',
-      slaStatus: 'at_risk',
-      slaRemainingText: '3 h restantes',
-      status: 'pending',
-    },
-    {
-      id: 'TASK-2026-014',
-      caseId: 'PROC-2026-00418',
-      processName: 'Contratación de Personal v1',
-      activityName: 'Aprobación Gerencial RRHH',
-      requester: 'Jorge Morales (RRHH)',
-      priority: 'high',
-      assignedTo: 'Carlos Mendoza',
-      assignedRole: 'Gerente de Área',
-      createdAt: '2026-08-23 14:15',
-      dueDate: '2026-08-24 12:00',
-      slaStatus: 'overdue',
-      slaRemainingText: 'Vencida hace 2 h',
-      status: 'pending',
-    },
-    {
-      id: 'TASK-2026-021',
-      caseId: 'PROC-2026-00445',
-      processName: 'Solicitud de Permiso Municipal v2',
-      activityName: 'Verificación Documental',
-      requester: 'Ana Beltrán (Trámites)',
-      priority: 'medium',
-      assignedTo: 'Carlos Mendoza',
-      assignedRole: 'Inspector Municipal',
-      createdAt: '2026-08-24 11:00',
-      dueDate: '2026-08-26 11:00',
-      slaStatus: 'normal',
-      slaRemainingText: '48 h restantes',
-      status: 'pending',
-    },
-  ];
+  const priorityTasks = tasks
+    .filter(
+      (t) =>
+        t.priority === 'urgent' ||
+        t.priority === 'high' ||
+        t.slaStatus === 'at_risk' ||
+        t.slaStatus === 'overdue'
+    )
+    .slice(0, 5);
+
+  const dueTodayCount = tasks.filter((t) => t.slaStatus === 'at_risk').length;
+  const overdueCount = tasks.filter((t) => t.slaStatus === 'overdue').length;
 
   const recentAuditEvents = [
     {
@@ -91,6 +56,11 @@ export const DashboardView: React.FC = () => {
     },
   ];
 
+  const handleOpenSpecificTask = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setActiveTab('task_detail');
+  };
+
   return (
     <StateWrapper mode="success">
       <div className="h-full overflow-y-auto p-6 space-y-6">
@@ -109,7 +79,7 @@ export const DashboardView: React.FC = () => {
           </div>
           <button
             onClick={() => setActiveTab('tasks')}
-            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5"
+            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <span>Ir a Bandeja de Tareas</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -121,8 +91,8 @@ export const DashboardView: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
             <div>
               <span className="text-xs text-slate-400 font-medium">Mis Tareas Abiertas</span>
-              <div className="text-2xl font-bold text-slate-100 mt-1">14</div>
-              <span className="text-[11px] text-slate-500 mt-0.5 block">Asignadas directamente</span>
+              <div className="text-2xl font-bold text-slate-100 mt-1">{tasks.length}</div>
+              <span className="text-[11px] text-slate-500 mt-0.5 block">Asignadas en plataforma</span>
             </div>
             <div className="w-10 h-10 rounded-lg bg-indigo-950/60 border border-indigo-800/40 text-indigo-400 flex items-center justify-center">
               <CheckSquare className="w-5 h-5" />
@@ -132,7 +102,7 @@ export const DashboardView: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
             <div>
               <span className="text-xs text-slate-400 font-medium">Vencen Hoy</span>
-              <div className="text-2xl font-bold text-amber-400 mt-1">3</div>
+              <div className="text-2xl font-bold text-amber-400 mt-1">{dueTodayCount}</div>
               <span className="text-[11px] text-amber-500/80 mt-0.5 block font-medium">Requieren acción inmediata</span>
             </div>
             <div className="w-10 h-10 rounded-lg bg-amber-950/60 border border-amber-800/40 text-amber-400 flex items-center justify-center">
@@ -143,7 +113,7 @@ export const DashboardView: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
             <div>
               <span className="text-xs text-slate-400 font-medium">Vencidas (Overdue)</span>
-              <div className="text-2xl font-bold text-rose-400 mt-1">2</div>
+              <div className="text-2xl font-bold text-rose-400 mt-1">{overdueCount}</div>
               <span className="text-[11px] text-rose-500/80 mt-0.5 block font-medium">Notificado a supervisor</span>
             </div>
             <div className="w-10 h-10 rounded-lg bg-rose-950/60 border border-rose-800/40 text-rose-400 flex items-center justify-center">
@@ -174,14 +144,15 @@ export const DashboardView: React.FC = () => {
                   Tareas de Alta Prioridad & SLAs en Riesgo
                 </h3>
               </div>
-              <span className="text-[11px] text-slate-500 font-mono">3 Tareas críticas</span>
+              <span className="text-[11px] text-slate-500 font-mono">{priorityTasks.length} Tareas críticas</span>
             </div>
 
             <div className="divide-y divide-slate-800/60 overflow-x-auto">
               {priorityTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="p-4 hover:bg-slate-800/40 transition-colors flex items-start justify-between gap-4"
+                  className="p-4 hover:bg-slate-800/40 transition-colors flex items-start justify-between gap-4 cursor-pointer"
+                  onClick={() => handleOpenSpecificTask(task.id)}
                 >
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -202,8 +173,11 @@ export const DashboardView: React.FC = () => {
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <SlaBadge status={task.slaStatus} remainingText={task.slaRemainingText} />
                     <button
-                      onClick={() => setActiveTab('tasks')}
-                      className="px-2.5 py-1 bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 rounded text-xs font-medium transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenSpecificTask(task.id);
+                      }}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 rounded text-xs font-medium transition-all cursor-pointer"
                     >
                       Ejecutar Tarea →
                     </button>
@@ -212,6 +186,7 @@ export const DashboardView: React.FC = () => {
               ))}
             </div>
           </div>
+
 
           {/* Audit Activity Feed (1 Column Span) */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">

@@ -12,26 +12,109 @@ volumes:
     name: processflow_minio_data
 
 services:
-  # 1. Base de Datos Relacional Multi-Tenant
+  # 1. Base de Datos Relacional Multi-Tenant (Supabase PostgreSQL Engine)
   postgres:
-    image: postgres:16-alpine
+    image: supabase/postgres:15.1.1.78
     container_name: processflow-db
     restart: unless-stopped
     networks:
       - processflow-net
     environment:
       POSTGRES_DB: processflow_db
-      POSTGRES_USER: processflow_user
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: processflow_secure_password_2026
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
       - processflow_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U processflow_user -d processflow_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d processflow_db"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+
+  # 1b. Supabase Auth (Servicio de Autenticación & Tokens JWT)
+  supabase-auth:
+    image: supabase/gotrue:v2.143.0
+    container_name: processflow-supabase-auth
+    restart: unless-stopped
+    networks:
+      - processflow-net
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://2.24.209.7:9999
+      GOTRUE_API_EXTERNAL_URL: http://2.24.209.7:9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgresql://postgres:processflow_secure_password_2026@postgres:5432/processflow_db?sslmode=disable
+      GOTRUE_SITE_URL: http://2.24.209.7:5173
+      GOTRUE_JWT_SECRET: processflow_super_secret_jwt_key_2026_processflow_auth
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+    ports:
+      - "9999:9999"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # 1c. Supabase Postgres-Meta (API REST de Gestión de Base de Datos para Studio)
+  postgres-meta:
+    image: supabase/postgres-meta:v0.84.0
+    container_name: processflow-postgres-meta
+    restart: unless-stopped
+    networks:
+      - processflow-net
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: postgres
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: processflow_db
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: processflow_secure_password_2026
+      PG_META_DB_SSL_MODE: disable
+      CRYPTO_KEY: processflow_crypto_meta_key_2026_super
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # 1d. Supabase Studio Dashboard (Interfaz Visual de Supabase)
+  supabase-studio:
+    image: supabase/studio:20240506-2976cd6
+    container_name: processflow-supabase-studio
+    restart: unless-stopped
+    networks:
+      - processflow-net
+    environment:
+      STUDIO_PG_META_URL: http://postgres-meta:8080
+      POSTGRES_PORT: "5432"
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: processflow_db
+      POSTGRES_PASSWORD: processflow_secure_password_2026
+      POSTGRES_USER_READ_WRITE: postgres
+      PG_META_CRYPTO_KEY: processflow_crypto_meta_key_2026_super
+      PGRST_DB_SCHEMAS: public,storage,graphql_public,auth
+      PGRST_DB_EXTRA_SEARCH_PATH: auth,public
+      DEFAULT_ORGANIZATION_NAME: "ProcessFlow Organization"
+      DEFAULT_PROJECT_NAME: "Default Project"
+      SUPABASE_URL: http://supabase-auth:9999
+      SUPABASE_PUBLIC_URL: http://2.24.209.7:8000
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByb2Nlc3NmbG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MjAxNTAwMDAwMH0.Bhh4glEsQGydZe14XiigiCZnPG614d7XEMjRTmimdWw
+      SUPABASE_SERVICE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByb2Nlc3NmbG93Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDE1MDAwMDAwfQ.kXKVA-qD6WSFUsP5-F0kTdEVTa6Ue1USh7Xq8Z6QStk
+      AUTH_JWT_SECRET: processflow_super_secret_jwt_key_2026_processflow_auth
+    ports:
+      - "8000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-meta:
+        condition: service_started
+
+
+
+
 
   # 2. Motor de Colas & Alertas de SLA (Redis 7)
   redis:
@@ -83,16 +166,21 @@ services:
     networks:
       - processflow-net
     environment:
-      DATABASE_URL: postgresql://processflow_user:processflow_secure_password_2026@processflow-db:5432/processflow_db
+      DATABASE_URL: postgresql://postgres:processflow_secure_password_2026@processflow-db:5432/processflow_db
       REDIS_URL: redis://:processflow_redis_password_2026@processflow-redis:6379
+      SUPABASE_AUTH_URL: http://supabase-auth:9999
+      JWT_SECRET: processflow_super_secret_jwt_key_2026_processflow_auth
       PORT: 3001
     ports:
       - "3002:3001"
     depends_on:
       postgres:
         condition: service_healthy
+      supabase-auth:
+        condition: service_started
       redis:
         condition: service_healthy
+
 
   # 5. Aplicación Web Frontend (ProcessFlow UI)
   web:
@@ -103,5 +191,9 @@ services:
     restart: unless-stopped
     networks:
       - processflow-net
+    environment:
+      VITE_SUPABASE_AUTH_URL: http://localhost:9999
+      VITE_API_BASE_URL: http://localhost:3002
     ports:
       - "5173:5173"
+

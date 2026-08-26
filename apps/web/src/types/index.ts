@@ -110,3 +110,19 @@ export type UIStateMode =
   | 'error'
   | 'no_permission'
   | 'partial_data';
+
+export interface UserItem {
+  id: string;
+  name: string;
+  email: string;
+  role: ProcessRole;
+  tenantId: string;
+  tenantCode: string;
+  tenantName: string;
+  active: boolean;
+  assignedProcesses: string[];
+  assignedTasksCount: number;
+  lastActive: string;
+  department?: string;
+}
+
